@@ -1,0 +1,48 @@
+<!DOCTYPE>
+<html>
+	<head>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<script src="/subnet.js"></script>
+	</head>
+	<body>
+			<blockquote>
+				<label>IP Address</label>
+				<input type="text" id="ip_addr" value="130.197.73.1">
+			</blockquote>
+
+			<blockquote>
+				<label>Subnet</label>
+				<input type="text" id="sub_net">
+			</blockquote>
+
+			<blockquote>
+				<label>Mask</label>
+				<input type="text" id="mask">
+			</blockquote>
+
+			<blockquote>
+				<label>Network Address</label>
+				<input type="text" id="net_addr">
+			</blockquote>
+
+			<blockquote>
+				<label>Broadcast Address</label>
+				<input type="text" id="broadcast_addr">
+			</blockquote>
+
+			<blockquote>
+				<label>Number of addresses</label>
+				<input type="text" id="num_addr">
+			</blockquote>
+
+			<script>
+				$('#ip_addr').bind('keyup', function (){
+					recalc();
+				});
+
+				$('#sub_net').bind('keyup', function (){
+					recalc();
+				});
+			</script>
+	</body>
+</html>

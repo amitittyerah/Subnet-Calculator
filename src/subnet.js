@@ -22,42 +22,22 @@ var recalc = function () {
 
 var cal_address = function ( ip_addr, subnet_mask, type ) {
 
-	var subnet_mask_octs = subnet_mask.split( '.' ); 
-	var found_weird = false;
-	var i = -1;
-	while ( !found_weird )
+	// First step - convert both to binary
+	var ip_addr_binary = convert_ip_to_binary_string( ip_addr ).split( '.' ).join( '' )
+	var subnet_mask_binary = convert_ip_to_binary_string( subnet_mask ).split( '.' ).join( '' )
+	console.log('ip ' + ip_addr_binary);
+	console.log('subnet ' + subnet_mask_binary);
+	// Second step - perform bitwise AND 
+	var network_addr_binary = bit_mask( ip_addr_binary, subnet_mask_binary );
+	console.log( 'network binary ' + network_addr_binary );
+	if (type === 'network')
 	{
-		if ( parseInt(subnet_mask_octs[++i]) !== 255 )
-		{
-			found_weird = true;
-		}
+		return convert_binary_to_ip_string( bin_to_separated( network_addr_binary.split( '' ) ).join( '' ) )
 	}
 
-	if ( i == 4 ) 
-	{
-		return ip_addr;
-	}
-
-	var ip_addr_blocks = ip_addr.split ( '.' );
-	var weird_block = ip_addr_blocks[i];
-
-	var weird_ip_block_binary = cal_decimal_val(weird_block);
-	var weird_subnet_block_binary = cal_decimal_val(subnet_mask_octs[i]);
-
-	var weird_mask_binary = bit_mask( weird_ip_block_binary, weird_subnet_block_binary );
-	var weird_mask_val = cal_binary_val( weird_mask_binary );
-	
-	weird_mask_val = (type === 'network') ? weird_mask_val : cal_binary_val( bit_mask( weird_mask_binary, inverse( weird_subnet_block_binary ), true ) );
-
-	ip_addr_blocks[i] = weird_mask_val;
-
-	for ( var j = i+1 ; j < 4 ; j++ )
-	{
-		ip_addr_blocks[j] = (type === 'network') ? 0 : 255;
-	}
-
-	return ip_addr_blocks.join( '.' );
-
+	// Third step - perform bitwise OR on inverted subnet mask
+	var broadcast_addr_binary = bit_mask( inverse( subnet_mask_binary ), network_addr_binary, true);
+	return convert_binary_to_ip_string( bin_to_separated( broadcast_addr_binary.split( '' ) ).join( '' ) )
 };
 
 var inverse = function ( bin_str ) {
@@ -71,22 +51,36 @@ var inverse = function ( bin_str ) {
 
 var fix_bin_length = function ( bin_str ) {
 
-	for( var i = 0 ; i < 8 - bin_str.length ; i++ )
+	console.log('fixing the binary length for an octect : ' + bin_str + " run for " + (8 - bin_str.length)); 
+	var diff = bin_str.trim().length;
+	for( var i = 0 ; i < 8 - diff ; i++ )
 	{
-		bin_str += '0';
+		console.log('added ' + i);
+		bin_str = '0' + bin_str ;
 	}
+	console.log('fixed result : ' + bin_str);
 
+	return bin_str;
+};
+
+var bin_to_separated = function ( bin_str ) {
+	bin_str.splice( 8, 0, '.')
+	bin_str.splice( 17, 0, '.')
+	bin_str.splice( 26, 0, '.')
 	return bin_str;
 };
 
 var bit_mask = function ( bin_str_A, bin_str_B, reverse ) {
 
+	console.log('masking between');
+	console.log(bin_str_A);
+	console.log(bin_str_B);
 	var result = '';
 	
 	bin_str_A = ""+fix_bin_length(bin_str_A);
 	bin_str_B = ""+fix_bin_length(bin_str_B);
 
-	for( var i = 0 ; i < 8 ; i++ ) 
+	for( var i = 0 ; i < bin_str_A.length ; i++ ) 
 	{
 		result += ( ( reverse === true && bin_str_A.charAt(i) !== bin_str_B.charAt(i) ) || 
 			( bin_str_A.charAt(i) === bin_str_B.charAt(i) && bin_str_B.charAt(i) == 1 ) ) ? '1' : '0';
@@ -94,6 +88,29 @@ var bit_mask = function ( bin_str_A, bin_str_B, reverse ) {
 
 	return result;
 
+};
+
+var convert_binary_to_ip_string = function ( bin_str ) {
+	var blocks = bin_str.split( '.' );
+	for ( var i = 0 ; i < blocks.length ; i++ )
+	{
+		blocks[i] = '' + cal_binary_val( blocks[i] );
+	}
+
+	return blocks.join( '.' );
+};
+
+var convert_ip_to_binary_string = function ( ip_str ) {
+
+	var blocks = ip_str.split( '.' );
+	console.log(blocks);
+	for ( var i = 0 ; i < blocks.length ; i++ )
+	{
+		blocks[i] = '' + fix_bin_length( cal_decimal_val( blocks[i] ) );
+
+	}
+
+	return blocks.join( '.' );
 };
 
 var cal_decimal_val = function ( dec_str, val ) {
@@ -104,8 +121,9 @@ var cal_decimal_val = function ( dec_str, val ) {
 	var div = parseInt( dec_str/2 );
 	if(div > 0)
 	{
-		val = cal_decimal_val( div, val );
+		val = '' + cal_decimal_val( div, val );
 	}
+
 	return val;
 
 };
@@ -125,6 +143,8 @@ var cal_binary_val = function ( bin_str ) {
 
 };
 
+
+
 var cal_subnet_mask = function ( ip_addr, sub_net ) {
 
 		var mask_binary = [];
@@ -139,9 +159,7 @@ var cal_subnet_mask = function ( ip_addr, sub_net ) {
 			mask_binary.push(0);
 		}
 
-		mask_binary.splice( 8, 0, '.')
-		mask_binary.splice( 17, 0, '.')
-		mask_binary.splice( 26, 0, '.')
+		mask_binary = bin_to_separated( mask_binary );
 
 		var mask_string = mask_binary.join( '' );
 		var mask_string_arr = mask_string.split('.');
